@@ -3,8 +3,8 @@
    an outline pulled in by half its width. */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap');
 
-/* The board is the whole 589×601 browser source; notes never leave it. */
-.board { position: absolute; left: 0; top: 0; width: 589px; height: 601px; }
+/* The board is the whole 596×601 browser source; notes never leave it. */
+.board { position: absolute; left: 0; top: 0; width: 596px; height: 601px; }
 
 /* A note hangs from its pin: (x, y) is the pin's centre. The card turns around the pin's tip (34px below the
    centre, 32px into the card) while the pin stays upright. */
@@ -13,7 +13,7 @@
 .card { position: absolute; left: 0; top: 2px; box-sizing: border-box; min-width: 128px; border-radius: 8px; outline: 8px solid #000; outline-offset: -4px; transform-origin: 50% 32px; }
 
 /* Frame 335: hugs the text, never wider than the board */
-.card.text { width: max-content; max-width: 589px; padding: 48px 24px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; background: #fff; }
+.card.text { width: max-content; max-width: 596px; padding: 48px 24px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; background: #fff; }
 /* Figma's leading-trim (cap height to baseline) is 8px off each end of a 32/39 Inter line; OBS has no text-box-trim yet. */
 .txt { min-width: 2px; min-height: 39px; margin: -8px 0; font: 700 32px/39px Inter, sans-serif; color: #000; text-align: center; white-space: pre-wrap; overflow-wrap: anywhere; outline: none; }
 

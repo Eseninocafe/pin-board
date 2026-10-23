@@ -2,7 +2,7 @@
 // to the overlay browser source through obs-browser's emit_event. Nothing leaves this machine.
 
 const W = 1920, H = 1080;   // scene
-const BW = 589, BH = 601;   // board, as in board.css
+const BW = 596, BH = 601;   // board, as in board.css
 const MAX_IMG = 1200;       // longest side kept when pinning an image
 const MIN_W = 128;          // narrowest note, as .card in board.css
 const TIP = 34;             // pin centre → pin tip, the point notes turn around (transform-origin in board.css)
