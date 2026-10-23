@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pin Board</title>
+<link rel="stylesheet" href="board.css">
+<style>
+  /* OBS browser source, 589 × 601, at x 32, y 184 in the 1920 × 1080 scene */
+  html, body { margin: 0; background: transparent; overflow: hidden; }
+</style>
+</head>
+<body>
+<div class="board" id="board"></div>
+<script src="board.js"></script>
+<script>
+  const board = document.getElementById('board');
+  const els = new Map(); // note id → its element, so an update only animates notes that were pinned or unpinned
+
+  function render(state, animate) {
+    const ids = new Set(state.notes.map(n => n.id));
+    for (const [id, el] of els) {
+      if (ids.has(id)) continue;
+      els.delete(id);
+      pinOut(el);
+    }
+    for (const n of state.notes) {
+      let el = els.get(n.id);
+      const pinned = !el;
+      if (pinned) els.set(n.id, el = noteEl(n));
+      else {
+        placeNote(el, n);
+        if (n.type === 'text') el.querySelector('.txt').textContent = n.text;
+      }
+      board.append(el); // in note order, last on top
+      if (pinned && animate) pinIn(el);
+    }
+  }
+
+  // The editor pushes the board through OBS (obs-browser's emit_event). The last one is kept in
+  // IndexedDB so the board is still up after OBS restarts with the editor closed.
+  const db = new Promise((resolve, reject) => {
+    const req = indexedDB.open('pinboard', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('kv');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  const kv = (mode, fn) => db.then(d => fn(d.transaction('kv', mode).objectStore('kv')));
+
+  let live = false;
+  addEventListener('pinboard', e => {
+    live = true;
+    render(e.detail, true);
+    kv('readwrite', s => s.put(e.detail, 'state'));
+  });
+  kv('readonly', s => {
+    const req = s.get('state');
+    req.onsuccess = () => req.result && !live && render(req.result, false); // OBS (re)start: no animation
+  });
+</script>
+</body>
+</html>
