@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pin Board Editor</title>
+<!-- shares board.js, board.css and assets/ with the overlay one folder up -->
+<base href="../">
+<link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="board.css">
+<style>
+  html, body { margin: 0; height: 100%; background: #F5F5F5; color: #000; font-family: Inter, sans-serif; }
+
+  /* The 1920×1080 scene, 1:1 by default; script.js scales it and keeps the left edge against the window. */
+  #view { position: fixed; inset: 0; overflow: auto; }
+  #stage { position: relative; overflow: hidden; }
+  #scene { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; background: #fff; transform-origin: 0 0; }
+  :where(#scene > *) { position: absolute; left: 0; top: 0; }
+  #board { left: 32px; top: 184px; } /* where the 589×601 OBS browser source sits */
+  .dash { left: 32px; top: 184px; overflow: visible; pointer-events: none; }
+  .player { left: 32px; top: 817px; width: 589px; height: 128px; border-radius: 24px; outline: 8px solid #000; outline-offset: -4px; }
+  .receipt { left: 1292px; top: 184px; }
+  .offline .board { pointer-events: none; }
+
+  /* Note handles: pin moves, bottom corners resize on the stroke (images) and rotate just outside it. */
+  .pin { cursor: grab; touch-action: none; }
+  .dragging * { cursor: inherit !important; } /* while dragging, the grabbed handle's cursor wins everywhere */
+  /* cursors here are fallbacks; script.js swaps in rotate.svg / resize.svg turned to the note's angle */
+  .h { position: absolute; bottom: -32px; width: 32px; height: 32px; touch-action: none; cursor: alias; }
+  .h.l { left: -32px; }
+  .h.r { right: -32px; }
+  .h.size { bottom: -6px; width: 24px; height: 24px; z-index: 1; }
+  .h.size.l { left: -6px; cursor: nesw-resize; }
+  .h.size.r { right: -6px; cursor: nwse-resize; }
+
+  /* Figma values verbatim; strokes are centred, drawn as an outline pulled in by half its width. */
+  .frame { box-sizing: border-box; background: #fff; border-radius: 16px; outline: 8px solid #000; outline-offset: -4px; }
+
+  /* Frame 507 → Frame 509 (connected) */
+  #panel { position: fixed; top: 16px; right: 16px; z-index: 10; width: 566px; height: 217px; padding: 14px;
+           display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 24px;
+           overflow: hidden; transition: width .3s, height .3s; }
+  #panel.connected { width: 185px; height: 57px; padding: 14px 16px; }
+  #connect { display: contents; }
+  .intro { flex: none; width: 538px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+  h1 { margin: 0; align-self: stretch; font: 600 24px/29px Inter, sans-serif; }
+  ol { margin: 0; padding-left: 26px; align-self: stretch; font: 500 18px/22px Inter, sans-serif; }
+  .row { flex: none; width: 538px; display: flex; align-items: flex-end; gap: 8px; }
+  .field { flex-grow: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .field::after { content: ''; align-self: stretch; height: 8px; background: #000; border-radius: 4px; }
+  #pass { align-self: stretch; height: 22px; padding: 0; border: 0; outline: 0; background: none; color: #000; font: 500 18px/22px Inter, sans-serif; }
+  #pass::placeholder { color: #3E3E3E; opacity: 1; }
+  .btn { flex: none; display: flex; justify-content: center; align-items: center; gap: 4px; height: 40px; padding: 4px; border: 0; border-radius: 8px;
+         background: #000; cursor: pointer; }
+  .btn span { padding-left: 8px; color: #fff; font: 600 18px/22px Inter, sans-serif; }
+  .btn img { filter: invert(1); }
+  .btn:hover { background: #2A2A2A; }
+  .btn:active { background: #3E3E3E; }
+  #status { display: none; flex: none; font: 600 24px/29px Inter, sans-serif; white-space: nowrap; }
+  .connected .intro, .connected .row { display: none; }
+  .connected #status { display: block; }
+
+  /* Frame 337 */
+  #menu { position: fixed; z-index: 10; width: 204px; height: 96px; padding: 8px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; }
+  #menu[hidden] { display: none; }
+  #menu button { align-self: stretch; display: flex; justify-content: space-between; align-items: center; gap: 4px; height: 40px; padding: 4px; border: 0; border-radius: 8px;
+                 background: #fff; color: #000; font: 600 18px/22px Inter, sans-serif; cursor: pointer; }
+  #menu button:hover { background: #ECECEC; }
+  #menu button:active { background: #DEDEDE; }
+  #menu i { width: 32px; height: 32px; }
+</style>
+</head>
+<body class="offline">
+
+<div id="view">
+  <div id="stage">
+    <div id="scene">
+      <img class="awning" src="assets/awning.svg" alt="">
+      <!-- Frame 498: 8px centred stroke, 24/24 round-capped dashes. Like Figma, each side fits whole dashes
+           centred on its corners, stretching the gap (sides 585/12, top and bottom 573/12). Editor only. -->
+      <svg class="dash" width="589" height="601" fill="none" stroke="#000" stroke-width="8" stroke-linecap="round" stroke-dashoffset="-0.57">
+        <path d="M0 8A8 8 0 0 1 8 0H581A8 8 0 0 1 589 8" stroke-dasharray="24 23.75"/>
+        <path d="M581 0A8 8 0 0 1 589 8V593A8 8 0 0 1 581 601" stroke-dasharray="24 24.75"/>
+        <path d="M589 593A8 8 0 0 1 581 601H8A8 8 0 0 1 0 593" stroke-dasharray="24 23.75"/>
+        <path d="M8 601A8 8 0 0 1 0 593V8A8 8 0 0 1 8 0" stroke-dasharray="24 24.75"/>
+      </svg>
+      <div class="board" id="board"></div>
+      <div class="player"></div>
+      <img class="receipt" src="assets/receipt.svg" alt="">
+    </div>
+  </div>
+</div>
+
+<div id="panel" class="frame">
+  <form id="connect">
+    <div class="intro">
+      <h1>CONNECT TO OBS</h1>
+      <ol>
+        <li>In OBS, open Tools in top bar → WebSocket Server Settings</li>
+        <li>Tick Enable WebSocket server, then click Apply</li>
+        <li>Click Show Connect Info</li>
+        <li>Copy the Server Password and paste it below to connect</li>
+      </ol>
+    </div>
+    <div class="row">
+      <label class="field"><input id="pass" placeholder="Server Password" aria-label="Server Password" autocomplete="off" spellcheck="false"></label>
+      <button class="btn"><span>Connect</span><img src="assets/icons/enter.svg" alt=""></button>
+    </div>
+  </form>
+  <div id="status" role="status">CONNECTED</div>
+</div>
+
+<div id="menu" class="frame" hidden>
+  <button id="pinImage"><img src="assets/icons/image.svg" alt=""><span>Pin image</span><i></i></button>
+  <button id="pinText"><img src="assets/icons/text.svg" alt=""><span>Pin text</span><i></i></button>
+</div>
+<input type="file" id="file" accept="image/*" multiple hidden>
+
+<script src="board.js"></script>
+<script src="configure/script.js"></script>
+</body>
+</html>

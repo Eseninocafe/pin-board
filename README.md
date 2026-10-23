@@ -1,18 +1,18 @@
 # Eseninocafe Pin Board
 
-- `index.html`: the editor (open it from GitHub Pages in Chrome)
-- `overlay.html`: the OBS browser source that shows up on stream
+- `index.html`: the OBS browser source that shows up on stream
+- `configure/`: the configure page (open it from GitHub Pages in Chrome)
 
 ## Setup
 
 1. Push to GitHub and turn on Pages (Settings → Pages → Deploy from branch → `main`, `/ (root)`).
 2. In OBS, add a **Browser** source:
-   - URL: `https://<user>.github.io/<repo>/overlay.html`
+   - URL: `https://<user>.github.io/<repo>/`
    - Width `589`, height `601`, at x `32`, y `184` in the 1920×1080 scene
    - Leave **Shutdown source when not visible** unticked, so it still gets changes while hidden
-3. Open `https://<user>.github.io/<repo>/` and paste the WebSocket Server Password once. It's remembered after that.
+3. Open `https://<user>.github.io/<repo>/configure/` and paste the WebSocket Server Password once. It's remembered after that.
 
-After pushing an update, give GitHub Pages a few minutes, then reload the editor and click **Refresh cache of current page** in the browser source's properties.
+After pushing an update, give GitHub Pages a few minutes, then reload the configure page and click **Refresh cache of current page** in the browser source's properties.
 
 ## Using it
 
@@ -22,6 +22,6 @@ After pushing an update, give GitHub Pages a few minutes, then reload the editor
 - Enter makes a new line. Text is saved when you click away (or press Escape).
 - Cmd/Ctrl + scroll (or pinch) to zoom.
 - Notes always stay fully inside the board, so nothing gets cut off on stream.
-- Add `?play` to the editor's URL to try things out without OBS. Nothing is saved.
+- Add `?play` to the configure page's URL to try things out without OBS. Nothing is saved.
 
-The board is stored in OBS (WebSocket persistent data), and the overlay keeps its own copy for when the editor is closed. Nothing goes to a server.
+The board is stored in OBS (WebSocket persistent data), and the overlay keeps its own copy for when the configure page is closed. Nothing goes to a server.
